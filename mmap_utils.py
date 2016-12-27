@@ -13,7 +13,12 @@ def persist_cv_splits(X, y, name=None, n_cv_iter=5, suffix="_cv_%03d.pkl",
     import uuid
 
     if name is None:
-        name = uuid.uuid4().get_hex()
+        u = uuid.uuid4()
+        if hasattr(u, 'get_hex'):
+            # Python 2 compat
+            name = u.get_hex()
+        else:
+            name = u.hex
 
     cv = ShuffleSplit(X.shape[0], n_iter=n_cv_iter,
         test_size=test_size, random_state=random_state)
@@ -46,7 +51,8 @@ def warm_mmap_on_cv_splits(client, cv_split_filenames):
     one_engine_per_host = dict((hostname, engine_id)
                                for engine_id, hostname
                                in hostnames.items())
-    hosts_view = client[one_engine_per_host.values()]
+    one_engine_per_host_ids = list(one_engine_per_host.values())
+    hosts_view = client[one_engine_per_host_ids]
 
     # Second step: for each data file and host, mmap the arrays of the file
     # and trigger a sequential read of all the arrays' data
